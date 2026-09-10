@@ -132,6 +132,12 @@ def cmd_web():
 
 
 def main():
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
+    except ImportError:
+        pass
+
     parser = argparse.ArgumentParser(
         description="AI-Powered Automatic Block Planning System (Indian Railways PS-26027)",
         formatter_class=argparse.RawDescriptionHelpFormatter,

@@ -34,7 +34,7 @@ from src.optimizer.solver import solve_block_scheduling
 # ─── Page Config ──────────────────────────────────────────────────────────────
 
 st.set_page_config(
-    page_title="AI Block Planning | Indian Railways",
+    page_title="AI Block Planning|Indian Railways",
     page_icon="🚂",
     layout="wide",
     initial_sidebar_state="expanded",

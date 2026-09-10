@@ -10,6 +10,9 @@ import sys
 import json
 import asyncio
 from typing import Optional
+from dotenv import load_dotenv
+
+load_dotenv()
 
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -22,7 +25,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-import pandas as pd
+
 
 # ── Ensure project root is on path ──
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -266,7 +269,7 @@ async def chat_endpoint(req: ChatRequest):
         {req.message}
         """
         
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={api_key}"
         payload = {
             "contents": [{"parts": [{"text": context}]}]
         }
@@ -290,10 +293,273 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            # Keep connection alive, wait for client messages if any
-            data = await websocket.receive_text()
+            # Keep connection alive, wait for client messages
+            await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
+
+# ── Map Data Endpoint ─────────────────────────────────────────────────────────
+
+# Static railway corridor layout: Mumbai-Pune-Nashik approximate route
+RAILWAY_STATIONS = [
+    {"id": "CSMT", "name": "Mumbai CSMT", "lat": 18.9398, "lon": 72.8355, "km": 0},
+    {"id": "KYN",  "name": "Kalyan Jn",   "lat": 19.2389, "lon": 73.1293, "km": 55},
+    {"id": "IGP",  "name": "Igatpuri",    "lat": 19.6989, "lon": 73.5601, "km": 120},
+    {"id": "NSK",  "name": "Nashik Road", "lat": 19.9615, "lon": 73.8197, "km": 180},
+    {"id": "DWD",  "name": "Devlali",     "lat": 19.9729, "lon": 73.8365, "km": 185},
+    {"id": "MMR",  "name": "Manmad Jn",   "lat": 20.2509, "lon": 74.4398, "km": 256},
+]
+
+TRACK_SEGMENTS = [
+    {"id": "SEG-1", "from": "CSMT", "to": "KYN",  "km_start": 0,   "km_end": 55,  "coords": [[18.9398,72.8355],[19.0500,72.9200],[19.1500,73.0200],[19.2389,73.1293]]},
+    {"id": "SEG-2", "from": "KYN",  "to": "IGP",  "km_start": 55,  "km_end": 120, "coords": [[19.2389,73.1293],[19.3800,73.2500],[19.5200,73.3900],[19.6989,73.5601]]},
+    {"id": "SEG-3", "from": "IGP",  "to": "NSK",  "km_start": 120, "km_end": 180, "coords": [[19.6989,73.5601],[19.7800,73.6400],[19.8700,73.7200],[19.9615,73.8197]]},
+    {"id": "SEG-4", "from": "NSK",  "to": "DWD",  "km_start": 180, "km_end": 185, "coords": [[19.9615,73.8197],[19.9729,73.8365]]},
+    {"id": "SEG-5", "from": "DWD",  "to": "MMR",  "km_start": 185, "km_end": 256, "coords": [[19.9729,73.8365],[20.0800,73.9800],[20.1600,74.2000],[20.2509,74.4398]]},
+]
+
+@app.get("/api/map-data")
+async def get_map_data():
+    """Return railway track geometry, station health, and defect heatmap data."""
+    import random
+    random.seed(42)
+
+    # Enrich stations with health status from tasks if available
+    stations = []
+    for st in RAILWAY_STATIONS:
+        health = "good"
+        if _state["is_ready"] and _state["tasks_df"] is not None:
+            df = _state["tasks_df"]
+            # Find tasks near this station km
+            nearby = df[(df["km_marker"] - st["km"]).abs() < 40] if "km_marker" in df.columns else df.iloc[0:0]
+            if len(nearby) > 0:
+                avg_score = nearby["criticality_score"].mean() if "criticality_score" in nearby.columns else 0
+                if avg_score > 0.7:
+                    health = "critical"
+                elif avg_score > 0.45:
+                    health = "watch"
+        stations.append({**st, "health": health})
+
+    # Enrich segments with criticality from schedule
+    segments = []
+    for seg in TRACK_SEGMENTS:
+        criticality = "good"
+        block_info = None
+        speed_restriction = 110
+        if _state["is_ready"] and _state["schedule_df"] is not None:
+            df = _state["schedule_df"]
+            # Match segment by km range
+            matched = df[
+                (df["section"].str.contains(seg["from"], na=False) |
+                 df["section"].str.contains(seg["to"], na=False))
+            ] if "section" in df.columns else df.iloc[0:0]
+            if len(matched) > 0:
+                block = matched.iloc[0]
+                task_count = block.get("task_count", 1)
+                criticality = "critical" if task_count >= 5 else ("watch" if task_count >= 3 else "good")
+                speed_restriction = 30 if criticality == "critical" else (60 if criticality == "watch" else 110)
+                block_info = {
+                    "block_id": block.get("block_id", "N/A"),
+                    "departments": block.get("departments", ""),
+                    "day": block.get("day_of_week", ""),
+                    "start_hour": block.get("block_start_hour", 0),
+                    "end_hour": block.get("block_end_hour", 0),
+                    "task_count": task_count,
+                    "speed_restriction": speed_restriction,
+                }
+        segments.append({**seg, "criticality": criticality, "block_info": block_info, "speed_restriction": speed_restriction})
+
+    # Generate defect heatmap points from tasks
+    heatmap = []
+    if _state["is_ready"] and _state["tasks_df"] is not None:
+        df = _state["tasks_df"]
+        for _, row in df.iterrows():
+            km = row.get("km_marker", random.uniform(0, 256))
+            # Interpolate lat/lon along the route based on km
+            pct = min(km / 256.0, 1.0)
+            lat = 18.9398 + pct * (20.2509 - 18.9398) + random.gauss(0, 0.015)
+            lon = 72.8355 + pct * (74.4398 - 72.8355) + random.gauss(0, 0.015)
+            intensity = float(row.get("criticality_score", 0.5))
+            heatmap.append([lat, lon, intensity])
+
+    return {"stations": stations, "segments": segments, "heatmap": heatmap}
+
+
+# ── Incident Simulator Endpoint ───────────────────────────────────────────────
+
+class IncidentRequest(BaseModel):
+    incident_type: str
+    km_marker: float
+    severity: str  # "low", "medium", "high"
+
+@app.post("/api/inject-incident")
+async def inject_incident(req: IncidentRequest):
+    """Inject an emergency incident, re-run optimizer, and broadcast update."""
+    if not _state["is_ready"] or _state["tasks_df"] is None:
+        raise HTTPException(status_code=400, detail="Pipeline not ready. Run /api/generate first.")
+
+    import pandas as pd
+    import random
+
+    severity_map = {"low": (0.6, 1), "medium": (0.8, 2), "high": (0.95, 4)}
+    score, extra_tasks = severity_map.get(req.severity, (0.75, 2))
+
+    dept_map = {
+        "Broken Rail":         "Engineering",
+        "OHE Wire Snap":       "Electrical",
+        "Signal Failure":      "S&T",
+        "Track Flooding":      "Engineering",
+        "Point Machine Fault": "S&T",
+    }
+    dept = dept_map.get(req.incident_type, "Engineering")
+
+    # Build synthetic emergency task rows
+    new_tasks = []
+    for i in range(extra_tasks):
+        new_tasks.append({
+            "task_id":          f"INC-{req.incident_type[:3].upper()}-{random.randint(1000,9999)}-T{i+1}",
+            "department":       dept,
+            "description":      f"Emergency: {req.incident_type} at Km {req.km_marker:.1f}",
+            "km_marker":        req.km_marker + i * 0.5,
+            "duration_hours":   2.0 + i,
+            "criticality_score": score + random.uniform(-0.05, 0.05),
+            "priority_tier":    1,
+            "section":          f"Km {int(req.km_marker)}-{int(req.km_marker)+10}",
+            "corridor":         "Mumbai-Pune",
+            "is_emergency":     True,
+            "cluster_id":       -1,
+        })
+
+    new_df = _state["tasks_df"].copy()
+    incident_df = pd.DataFrame(new_tasks)
+    # Only add columns that exist in existing df
+    for col in new_df.columns:
+        if col not in incident_df.columns:
+            incident_df[col] = None
+    _state["tasks_df"] = pd.concat([new_df, incident_df[new_df.columns]], ignore_index=True)
+
+    # Re-run clustering + optimizer
+    try:
+        from src.models.clustering import cluster_tasks
+        from src.optimizer.solver import solve_block_scheduling
+        blocks_df, tasks_clustered = cluster_tasks(_state["tasks_df"])
+        schedule_df, stats = solve_block_scheduling(blocks_df, _state["coa_df"])
+        _state["schedule_df"] = schedule_df
+        _state["tasks_df"] = tasks_clustered
+        _state["blocks_df"] = blocks_df
+        _state["stats"] = stats
+        await manager.broadcast(json.dumps({
+            "event": "incident_injected",
+            "incident_type": req.incident_type,
+            "km_marker": req.km_marker,
+            "severity": req.severity,
+            "stats": stats,
+        }))
+        return {"status": "ok", "message": f"Incident injected. Re-optimized {stats['blocks_scheduled']} blocks.", "stats": stats}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Re-optimization failed: {e}")
+
+
+# ── Fleet Manager Endpoint ────────────────────────────────────────────────────
+
+MACHINERY = [
+    {"id": "TM-01", "name": "Track Tamper",              "type": "tamper",   "dept": "Engineering", "icon": "🚜"},
+    {"id": "TW-01", "name": "Tower Wagon",                "type": "tower",    "dept": "Electrical",  "icon": "🚡"},
+    {"id": "BR-01", "name": "Ballast Regulator",          "type": "ballast",  "dept": "Engineering", "icon": "🚧"},
+    {"id": "UT-01", "name": "Ultrasonic Testing Van",     "type": "sonic",    "dept": "Engineering", "icon": "📡"},
+    {"id": "OHE-01","name": "OHE Maintenance Vehicle",    "type": "ohe",      "dept": "Electrical",  "icon": "⚡"},
+    {"id": "ST-01", "name": "Signal Testing Unit",        "type": "signal",   "dept": "S&T",         "icon": "🔦"},
+    {"id": "TW-02", "name": "Tower Wagon #2",             "type": "tower",    "dept": "Electrical",  "icon": "🚡"},
+    {"id": "TM-02", "name": "Track Tamper #2",            "type": "tamper",   "dept": "Engineering", "icon": "🚜"},
+]
+
+@app.get("/api/fleet")
+async def get_fleet():
+    """Return machinery allocation derived from schedule. Detects conflicts."""
+    import random
+    random.seed(99)
+
+    if not _state["is_ready"] or _state["schedule_df"] is None:
+        # Return idle fleet if pipeline not ready
+        return {"machines": [
+            {**m, "status": "idle", "assigned_block": None, "location_km": random.randint(0,256),
+             "next_use": None, "available_from": "Now"} for m in MACHINERY
+        ], "conflicts": []}
+
+    df = _state["schedule_df"]
+    dept_blocks = {}
+    for _, row in df.iterrows():
+        depts = [d.strip() for d in row.get("departments","").split(",")]
+        for d in depts:
+            if d not in dept_blocks:
+                dept_blocks[d] = []
+            dept_blocks[d].append(row)
+
+    machines_out = []
+    # Track machine → assigned block for conflict detection
+    type_assignments = {}  # machine_type → list of (block_id, km, start_hour, end_hour)
+
+    for m in MACHINERY:
+        dept = m["dept"]
+        blocks = dept_blocks.get(dept, [])
+        # Assign to first available block that matches department
+        assigned = None
+        if blocks:
+            # Pick a block pseudo-deterministically
+            idx = (hash(m["id"]) % len(blocks))
+            block = blocks[idx]
+            assigned = {
+                "block_id":   block.get("block_id",""),
+                "section":    block.get("section",""),
+                "day":        block.get("day_of_week",""),
+                "start_hour": block.get("block_start_hour", 0),
+                "end_hour":   block.get("block_end_hour", 0),
+                "km":         random.randint(0, 256),
+            }
+            # Track for conflict detection
+            if m["type"] not in type_assignments:
+                type_assignments[m["type"]] = []
+            type_assignments[m["type"]].append({
+                "machine_id": m["id"],
+                "machine_name": m["name"],
+                "block_id": assigned["block_id"],
+                "km": assigned["km"],
+                "start_hour": assigned["start_hour"],
+                "end_hour": assigned["end_hour"],
+            })
+
+        machines_out.append({
+            **m,
+            "status":         "deployed" if assigned else "idle",
+            "assigned_block": assigned,
+            "location_km":    assigned["km"] if assigned else random.randint(0, 256),
+            "next_use":       assigned["day"] if assigned else None,
+            "available_from": f"{int(assigned['end_hour']):02d}:00" if assigned else "Now",
+        })
+
+    # Detect conflicts: same machine type deployed in overlapping time windows at different km
+    conflicts = []
+    for mtype, assignments in type_assignments.items():
+        for i in range(len(assignments)):
+            for j in range(i+1, len(assignments)):
+                a, b = assignments[i], assignments[j]
+                # Time overlap check
+                overlap = not (a["end_hour"] <= b["start_hour"] or b["end_hour"] <= a["start_hour"])
+                # Location conflict (>30 km apart)
+                dist = abs(a["km"] - b["km"])
+                if overlap and dist > 30:
+                    conflicts.append({
+                        "type": mtype,
+                        "machine_a": a["machine_name"],
+                        "machine_b": b["machine_name"],
+                        "block_a":   a["block_id"],
+                        "block_b":   b["block_id"],
+                        "km_diff":   dist,
+                        "message":   f"{a['machine_name']} and {b['machine_name']} both needed simultaneously but are {dist}km apart.",
+                    })
+
+    return {"machines": machines_out, "conflicts": conflicts}
 
 
 # ── Serve Static Frontend (If Built) ──

@@ -7,10 +7,7 @@ Solves the block-window assignment problem:
   - Constraints: Capacity, spatial compatibility, peak avoidance, weekly balance.
 """
 
-from dataclasses import dataclass, field
-from typing import Optional
-
-import numpy as np
+from dataclasses import dataclass
 import pandas as pd
 from ortools.sat.python import cp_model
 
@@ -123,7 +120,6 @@ def solve_block_scheduling(
             )
 
     # ── Constraint 2: Window capacity — total block hours ≤ window duration ──
-    window_indices = available_windows.index.tolist()
     for w_idx in set(w for _, w in compatible_pairs):
         window_blocks = [b_idx for (b_idx, wi) in compatible_pairs if wi == w_idx]
         if window_blocks:
