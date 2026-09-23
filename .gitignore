@@ -1,5 +1,6 @@
 # Python
 __pycache__/
+*.pyc
 *.py[cod]
 *$py.class
 *.so
@@ -10,9 +11,14 @@ eggs/
 *.egg
 
 # Virtual environments
+.venv/
 venv/
 env/
 .env
+.env.*
+config/.env
+**/.env
+!.env.example
 
 # IDE
 .vscode/
@@ -21,8 +27,7 @@ env/
 *.swo
 
 # Generated data (can be regenerated)
-data/generated/*.csv
-data/generated/*.json
+database/generated/
 
 # OS
 .DS_Store
@@ -36,6 +41,10 @@ Thumbs.db
 
 # Node / UI
 node_modules/
-ui-web/node_modules/
-ui-web/dist/
+frontend/node_modules/
+frontend/dist/
+
+# Tests
+.pytest_cache/
+.coverage
 .agents/

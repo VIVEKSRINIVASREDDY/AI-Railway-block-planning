@@ -10,45 +10,69 @@ TMS/SMMS/TDMS (Defects) ──► Data Ingestion ──► AI Prioritization ─
 COA (Corridor Schedule) ──┘                    (Criticality Index)   (DBSCAN Grouping)     (CP-SAT Solver)         (API)      (Gantt + KPIs)
 ```
 
-### Quick Start
+### Quick Start (Run Whole Project at Once)
+
+To launch the **entire project simultaneously** (FastAPI backend + React Web App + Streamlit Dashboard + IoT Sensor Telemetry Feed):
+
 ```bash
-# 1. Install dependencies
-pip install -r requirements.txt
+# Option A: Run the unified launcher script
+py run_all.py
 
-# 2. Generate synthetic data
-python main.py --generate
+# Option B: Run via main CLI flag
+py main.py --all
 
-# 3. Run full optimization pipeline
-python main.py --optimize
-
-# 4. Launch API server
-python main.py --api
-
-# 5. Launch dashboard (in separate terminal)
-python main.py --dashboard
-
-# Or run everything at once
-python main.py --all
+# Option C (Windows One-Click):
+.\run_all.bat
 ```
+
+Once launched:
+- 🌐 **Modern React Web App**: [http://localhost:5173](http://localhost:5173) (or [http://localhost:8000](http://localhost:8000))
+- 📊 **Streamlit Analytics Dashboard**: [http://localhost:8501](http://localhost:8501)
+- ⚡ **FastAPI Server**: [http://localhost:8000](http://localhost:8000)
+- 📑 **Swagger API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- 📡 **Digital Twin IoT Feed**: Streaming live sensor telemetry into port 8000
+
+---
+
+### Individual Service Commands
+If you prefer running services independently:
+```bash
+# 1. Generate synthetic data
+py main.py --generate
+
+# 2. Run AI optimization pipeline
+py main.py --optimize
+
+# 3. Launch FastAPI server only
+py main.py --api
+
+# 4. Launch Streamlit dashboard only
+py main.py --dashboard
+
+# 5. Launch React Web UI + Unified Backend
+py main.py --web
+```
+
 
 ### Project Structure
 ```
 capstone-project/
-├── data/                    # Synthetic data generation
-│   ├── data_generator.py    # Generator for TMS, SMMS, TDMS, COA
+├── config/                  # Configuration and environments
+├── database/                # Data generation & ingestion
+│   ├── generator.py         # Synthetic data generator
+│   ├── loader.py            # CSV loading & validation
 │   └── generated/           # Output CSVs
-├── src/
-│   ├── ingestion/           # Data loading & schema validation
-│   │   └── loader.py
-│   ├── models/              # AI/ML models
-│   │   ├── prioritizer.py   # Criticality Index scoring
-│   │   └── clustering.py    # DBSCAN spatial clustering
-│   ├── optimizer/           # Optimization engine
-│   │   └── solver.py        # OR-Tools CP-SAT solver
-│   └── api/                 # REST API
-│       └── routes.py        # FastAPI endpoints
-├── ui/
-│   └── app.py               # Streamlit dashboard
+├── ai_engine/               # AI/ML models
+│   ├── prioritizer.py       # Criticality Index scoring
+│   └── clustering.py        # DBSCAN spatial clustering
+├── optimizer/               # Optimization engine
+│   └── solver.py            # OR-Tools CP-SAT solver
+├── api/                     # REST API backend
+│   └── routes.py            # FastAPI endpoints
+├── frontend/                # React Web application
+├── dashboard/               # Streamlit dashboard
+│   └── app.py               
+├── scripts/                 # Utility scripts
 ├── main.py                  # Pipeline entry point
 ├── requirements.txt
 └── README.md

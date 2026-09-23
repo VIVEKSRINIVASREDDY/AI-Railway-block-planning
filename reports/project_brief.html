@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Project Brief - SIH 26027</title>
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 16mm 18mm 16mm;
+  }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #1f2937;
+    line-height: 1.5;
+    font-size: 10.5pt;
+    margin: 0;
+    padding: 0;
+  }
+  .badge {
+    color: #0e7490;
+    font-size: 8.5pt;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  h1 {
+    color: #1e3a8a;
+    font-size: 18pt;
+    margin: 0 0 6px 0;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+  .subtitle {
+    color: #4b5563;
+    font-size: 9.5pt;
+    font-style: italic;
+    margin-bottom: 12px;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 8px;
+  }
+  .meta-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 14px;
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 4px 10px;
+    font-size: 9pt;
+  }
+  .meta-label {
+    font-weight: bold;
+    color: #1e3a8a;
+  }
+  .meta-val {
+    color: #334155;
+  }
+  h2 {
+    color: #1e3a8a;
+    font-size: 11.5pt;
+    margin: 12px 0 4px 0;
+    font-weight: 700;
+    border-left: 3px solid #1e3a8a;
+    padding-left: 8px;
+  }
+  p {
+    margin: 0 0 8px 0;
+    text-align: justify;
+  }
+  ul {
+    margin: 4px 0 10px 18px;
+    padding: 0;
+  }
+  li {
+    margin-bottom: 4px;
+  }
+  .footer {
+    margin-top: 16px;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 8px;
+    text-align: center;
+    font-size: 8.5pt;
+    color: #6b7280;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<div class="badge">Smart India Hackathon (SIH) 2026 &bull; Ministry of Railways, Govt. of India</div>
+<h1>AI-Powered Automatic Block Planning System</h1>
+<div class="subtitle">Problem Statement 26027: To Maximize Asset Availability for Train Operations on Indian Railways</div>
+
+<div class="meta-box">
+  <div class="meta-label">Problem Statement ID:</div>
+  <div class="meta-val">26027 (Ministry of Railways / AICTE)</div>
+  <div class="meta-label">Category / Domain:</div>
+  <div class="meta-val">Smart Transportation, AI &amp; Operations Research, Real-Time Digital Twin</div>
+  <div class="meta-label">Core Architecture:</div>
+  <div class="meta-val">TMS/SMMS/TDMS &rarr; AI Criticality &rarr; DBSCAN Clustering &rarr; OR-Tools CP-SAT &rarr; FastAPI &rarr; React 19</div>
+  <div class="meta-label">Target Beneficiaries:</div>
+  <div class="meta-val">Section Controllers, Divisional Operations &amp; Engineering Maintenance Wings</div>
+</div>
+
+<h2>1. Introduction</h2>
+<p>
+Indian Railways operates one of the world's largest and most congested rail networks, running over 21,000 passenger and freight trains daily across 68,000 route kilometers. To maintain uncompromising safety standards and prevent catastrophic derailments, regular maintenance of tracks, signaling systems, and overhead electrical (OHE) lines is mandatory. However, maintenance requires "traffic and power blocks" during which train movements on specific tracks must be halted or diverted. Currently, block planning across Indian Railways divisions is largely managed through manual, negotiation-heavy meetings. Without automated coordination against live train timetables, maintenance requests conflict with high-priority traffic, causing severe train delays, underutilized block windows, and repeated corridor shutdowns.
+</p>
+
+<h2>2. Problem Statement</h2>
+<p>
+In Indian Railways, maintenance demands from the Track (Civil/TMS), Signalling (S&amp;T/SMMS), and Electrical (TRD/TDMS) departments reside in isolated, independent systems. Because these departments schedule work separately without real-time alignment with the Control Office Application (COA) train timetables, the same track section is often shut down repeatedly on consecutive days by different teams. This lack of coordination throttles line capacity, causes cascading delays to high-priority trains like Vande Bharat and Rajdhani, and prevents rapid dynamic rescheduling when unexpected rail defects or severe weather events strike in real time.
+</p>
+
+<h2>3. Aim of the Project</h2>
+<p>
+The primary aim of this project is to develop an intelligent, automated block scheduling and real-time digital twin platform for Indian Railways. The platform coordinates multi-departmental maintenance demands, maximizes track availability for commercial train operations, eliminates scheduling conflicts, and dynamically reschedules maintenance windows within seconds during real-time track disruptions or adverse weather conditions.
+</p>
+
+<h2>4. Project Description</h2>
+<p>
+This project provides an end-to-end decision-support platform for railway section controllers by combining machine learning, spatial clustering, and mathematical constraint programming. The system ingests defect records across Track, Signal, and Electrical departments and ranks their urgency using an AI Criticality Scoring engine (XGBoost blended with safety heuristics) based on defect severity, speed restrictions, and passenger traffic density. It then applies spatial clustering (DBSCAN) to group overlapping tasks along the same corridor (within 2.0 km), allowing multiple departments to execute repairs simultaneously under a single integrated block.
+</p>
+<p>
+The scheduling core employs Google OR-Tools CP-SAT to calculate mathematically conflict-free weekly block schedules that respect all train headways, crew limits, and maintenance machinery availability. Furthermore, the platform incorporates a Real-Time Railway Digital Twin that ingests live weather conditions via the Open-Meteo API and streams simulated IoT track vibration telemetry. When an anomaly or emergency defect is detected, the system calculates the cascading blast radius and generates an updated schedule within 60 seconds. The entire platform is accessible through an interactive React 19 Web GIS dashboard featuring live track maps, Gantt timelines, and one-click PDF Block Sanction Order generation with QR verification.
+</p>
+
+<h2>5. Key Objectives</h2>
+<ul>
+  <li><strong>Automated Conflict-Free Planning:</strong> Replace days of manual coordination by automatically computing conflict-free corridor block schedules in under 2 minutes.</li>
+  <li><strong>Maximize Track Availability:</strong> Elevate active track availability for train operations on high-density corridors to over 88.5% while adhering to all safety protocols.</li>
+  <li><strong>Multi-Department Integration:</strong> Achieve a cross-departmental integration rate of over 70%, bundling track, signal, and electrical maintenance into joint windows.</li>
+  <li><strong>Real-Time Anomaly Resilience:</strong> Detect rail vibration and thermal anomalies and dynamically generate conflict-free replacement schedules in under 60 seconds.</li>
+  <li><strong>Controller Decision Support:</strong> Equip Section Controllers with an interactive GIS map, schedule timeline, and instant export of official block sanction permits.</li>
+</ul>
+
+<h2>6. References</h2>
+<ul style="font-size: 8.8pt; line-height: 1.4; color: #374151;">
+  <li><strong>[1] Ministry of Railways, Government of India (2020).</strong> <em>Indian Railways Permanent Way Manual (IRPWM)</em>. Railway Board, New Delhi. (Procedures for track maintenance, speed restrictions, and block possessions).</li>
+  <li><strong>[2] Ministry of Railways, Government of India (2021).</strong> <em>Indian Railways Signal Engineering Manual (IRSEM) &amp; AC Traction Manual (ACTM)</em>. (Protocols for signaling maintenance and OHE power block shutdowns).</li>
+  <li><strong>[3] Smart India Hackathon (SIH) 2026.</strong> Problem Statement 26027: <em>"AI-Powered Automatic Block Planning to Maximize Asset Availability for Train Operations on Indian Railways"</em>, Ministry of Railways / AICTE.</li>
+  <li><strong>[4] Lid&eacute;n, T., &amp; Joborn, M. (2016).</strong> Dimensioning maintenance windows on railway networks with integer programming. <em>Transportation Research Part C: Emerging Technologies</em>, 69, 442&ndash;458.</li>
+  <li><strong>[5] Vansteenwegen, P., et al. (2016).</strong> The railway track maintenance scheduling problem: A review of models and solution methods. <em>European Journal of Operational Research</em>, 254(3), 693&ndash;708.</li>
+  <li><strong>[6] Perron, L., &amp; Didier, F.</strong> <em>Google Optimization Tools (OR-Tools) CP-SAT Solver for Constraint Programming and Discrete Optimization</em>. Google LLC.</li>
+  <li><strong>[7] Chen, T., &amp; Guestrin, C. (2016).</strong> XGBoost: A Scalable Tree Boosting System. <em>ACM SIGKDD International Conference on Knowledge Discovery and Data Mining</em>, 785&ndash;794.</li>
+  <li><strong>[8] Ester, M., Kriegel, H. P., Sander, J., &amp; Xu, X. (1996).</strong> A density-based algorithm for discovering clusters in large spatial databases with noise (DBSCAN). <em>KDD-96 Proceedings</em>, 226&ndash;231.</li>
+  <li><strong>[9] Zippenfenig, P. (2023).</strong> Open-Meteo: Open-Source High-Resolution Weather API and Meteorological Data Pipeline.</li>
+</ul>
+
+<div class="footer">
+  Smart India Hackathon 2026 &bull; Problem Statement 26027 &bull; Capstone Project Submission &bull; Academic Year 2026
+</div>
+
+</body>
+</html>
