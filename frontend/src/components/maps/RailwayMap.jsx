@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { Map, AlertTriangle, Activity, ZoomIn, ZoomOut, Layers } from 'lucide-react';
 
-const API = import.meta.env.MODE === 'development' ? 'http://localhost:8000/api' : '/api';
+const API = import.meta.env.VITE_API_URL || (import.meta.env.MODE === 'development' ? 'http://127.0.0.1:8000/api' : '/api');
 
 const CRITICALITY_COLORS = {
   good:     { track: '#10b981', station: '#10b981', glow: 'rgba(16,185,129,0.6)',  label: 'Normal',   badge: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },

@@ -6,7 +6,7 @@ import { twMerge } from 'tailwind-merge';
 
 function cn(...inputs) { return twMerge(clsx(inputs)); }
 
-const API = import.meta.env.MODE === 'development' ? 'http://localhost:8000/api' : '/api';
+const API = import.meta.env.VITE_API_URL || (import.meta.env.MODE === 'development' ? 'http://127.0.0.1:8000/api' : '/api');
 
 export default function ImpactGraph({ events }) {
   const [impactData, setImpactData] = useState(null);

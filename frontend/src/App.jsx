@@ -23,7 +23,7 @@ import LiveDashboard from './components/realtime/LiveDashboard';
 import BetaDashboard from './components/beta/BetaDashboard';
 function cn(...inputs) { return twMerge(clsx(inputs)); }
 
-const API = import.meta.env.MODE === 'development' ? 'http://localhost:8000/api' : '/api';
+const API = import.meta.env.VITE_API_URL || (import.meta.env.MODE === 'development' ? 'http://127.0.0.1:8000/api' : '/api');
 
 /* ────────────────────── Navigation Structure ────────────────────── */
 const NAV_SECTIONS = [
@@ -114,28 +114,72 @@ export default function App() {
 
   useEffect(() => { fetchData(); }, []);
 
-  /* ── WebSocket ── */
+  /* ── WebSocket with Auto-Reconnect ── */
   useEffect(() => {
-    const wsUrl = import.meta.env.MODE === 'development'
-      ? 'ws://localhost:8000/api/ws/stream'
-      : `ws://${window.location.host}/api/ws/stream`;
-    const ws = new WebSocket(wsUrl);
+    let ws = null;
+    let reconnectTimer = null;
+    let isMounted = true;
 
-    ws.onopen = () => setWsConnected(true);
-    ws.onclose = () => setWsConnected(false);
-    ws.onmessage = (event) => {
+    const connect = () => {
+      if (!isMounted) return;
+
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      // Use 127.0.0.1 on dev to avoid Windows IPv6 (::1) localhost resolution timeout
+      const wsUrl = import.meta.env.VITE_WS_URL || (
+        import.meta.env.MODE === 'development'
+          ? 'ws://127.0.0.1:8000/api/ws/stream'
+          : `${protocol}//${window.location.host}/api/ws/stream`
+      );
+
       try {
-        const msg = JSON.parse(event.data);
-        if (msg.event === 'pipeline_updated') fetchData();
-        if (msg.event === 'incident_injected') {
-          setIncidentAlert({ type: msg.incident_type, km: msg.km_marker, severity: msg.severity });
-          fetchData();
-          setTimeout(() => setIncidentAlert(null), 5000);
-        }
-      } catch (err) {}
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          if (!isMounted) return;
+          setWsConnected(true);
+        };
+
+        ws.onclose = () => {
+          if (!isMounted) return;
+          setWsConnected(false);
+          // Auto-reconnect after 3 seconds if disconnected
+          reconnectTimer = setTimeout(connect, 3000);
+        };
+
+        ws.onerror = () => {
+          if (!isMounted) return;
+          setWsConnected(false);
+          try { ws.close(); } catch (_) {}
+        };
+
+        ws.onmessage = (event) => {
+          if (!isMounted) return;
+          try {
+            const msg = JSON.parse(event.data);
+            if (msg.event === 'pipeline_updated') fetchData();
+            if (msg.event === 'incident_injected') {
+              setIncidentAlert({ type: msg.incident_type, km: msg.km_marker, severity: msg.severity });
+              fetchData();
+              setTimeout(() => setIncidentAlert(null), 5000);
+            }
+          } catch (err) {}
+        };
+      } catch (err) {
+        if (!isMounted) return;
+        setWsConnected(false);
+        reconnectTimer = setTimeout(connect, 3000);
+      }
     };
 
-    return () => ws.close();
+    connect();
+
+    return () => {
+      isMounted = false;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (ws) {
+        try { ws.close(); } catch (_) {}
+      }
+    };
   }, []);
 
   /* ── Derived ── */

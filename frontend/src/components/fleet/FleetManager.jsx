@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Truck, AlertTriangle, CheckCircle, MapPin, Clock, Wrench, RefreshCw } from 'lucide-react';
 
-const API = import.meta.env.MODE === 'development' ? 'http://localhost:8000/api' : '/api';
+const API = import.meta.env.VITE_API_URL || (import.meta.env.MODE === 'development' ? 'http://127.0.0.1:8000/api' : '/api');
 
 const DEPT_STYLES = {
   Engineering: { bg: 'bg-blue-500/10',   border: 'border-blue-500/30',   text: 'text-blue-400',   dot: 'bg-blue-500' },
