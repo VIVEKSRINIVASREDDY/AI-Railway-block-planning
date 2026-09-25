@@ -249,5 +249,12 @@ Examples:
         cmd_replan()
 
 
+# Export top-level FastAPI app instance for ASGI servers / cloud runners
+try:
+    from api.routes import app
+except Exception:
+    app = None
+
+
 if __name__ == "__main__":
     main()
