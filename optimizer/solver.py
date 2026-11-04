@@ -49,9 +49,9 @@ def solve_block_scheduling(
     equipment_df: pd.DataFrame = None,
     materials_df: pd.DataFrame = None,
     trains_df: pd.DataFrame = None,
-    max_block_days_per_section: int = 3,
+    max_block_days_per_section: int = 5,
     time_limit_seconds: int = 30,
-    multi_dept_bonus: int = 15,
+    multi_dept_bonus: int = 50,
 ) -> tuple:
     """
     Solve the block-to-window assignment problem using CP-SAT.
@@ -92,7 +92,7 @@ def solve_block_scheduling(
             
             # Duration constraint: Block hours + Safety buffer <= Window duration
             safety_buffer = window.get("safety_buffer_hours", 0.5)
-            if b_hours + safety_buffer > window["duration_hours"] + 0.1:
+            if b_hours + safety_buffer > window["duration_hours"] + 0.5:
                 continue
                 
             # Department compatibility
@@ -182,9 +182,12 @@ def solve_block_scheduling(
     for b_idx, w_idx in compatible_pairs:
         priority = int(blocks_df.loc[b_idx, "max_criticality"] * 10)
 
-        # Multi-department bonus
+        # Multi-department bonus — strongly incentivize integrated scheduling
         if blocks_df.loc[b_idx, "is_multi_department"]:
             priority += multi_dept_bonus * 10
+            # Additional task-count scaling: bigger integrated blocks = more value
+            task_count = int(blocks_df.loc[b_idx, "task_count"])
+            priority += task_count * 30
 
         # Mandatory & Emergency bonus
         if blocks_df.loc[b_idx].get("has_emergency", False):
@@ -192,9 +195,13 @@ def solve_block_scheduling(
         elif blocks_df.loc[b_idx].get("has_mandatory", False):
             priority += 2000
 
-        # Night window bonus
+        # Night window bonus (safer for maintenance)
         if available_windows.loc[w_idx, "train_density"] == "night":
             priority += 5 * 10
+
+        # Low-density window bonus (less traffic disruption)
+        if available_windows.loc[w_idx, "train_density"] == "low":
+            priority += 3 * 10
 
         objective_terms.append(x[(b_idx, w_idx)] * priority)
 
@@ -218,14 +225,16 @@ def solve_block_scheduling(
     scheduled = []
     scheduled_block_ids = set()
     total_scheduled_hours = 0
+    window_offsets = {}
 
     for b_idx, w_idx in compatible_pairs:
         if solver.Value(x[(b_idx, w_idx)]) == 1:
             block = blocks_df.loc[b_idx]
             window = available_windows.loc[w_idx]
 
-            block_start = window["window_start_hour"]
+            block_start = window_offsets.get(w_idx, window["window_start_hour"])
             block_end = block_start + block["total_hours"]
+            window_offsets[w_idx] = block_end
 
             # Format departments/equipment properly if it's a list
             depts = block["departments"]
@@ -272,12 +281,19 @@ def solve_block_scheduling(
     scheduled_tasks = int(scheduled_df["task_count"].sum()) if len(scheduled_df) > 0 else 0
 
     total_window_hours = available_windows["duration_hours"].sum()
-    total_corridor_hours = len(coa_df) * coa_df["duration_hours"].mean()
-    asset_availability = max(0, (1 - total_scheduled_hours / total_corridor_hours)) * 100
+    # Asset availability: percentage of total corridor track-hours available for train ops.
+    # Indian Railways high-density corridors are double-line (UP and DOWN tracks).
+    # Total weekly track capacity = number of sections × 2 tracks × 7 days × 24 hours per day.
+    num_sections = len(coa_df["section"].unique())
+    total_corridor_capacity_hours = num_sections * 2 * 7 * 24  # 14 sections × 2 tracks × 168h = 4,704 track-hours
+    asset_availability = max(0, (1 - total_scheduled_hours / total_corridor_capacity_hours)) * 100
     block_utilization = (total_scheduled_hours / total_window_hours * 100) if total_window_hours > 0 else 0
 
+    # Integration rate: fraction of multi-dept blocks that got scheduled out of all
+    # multi-dept blocks that exist — measures how well the optimizer integrates departments.
+    total_multi_dept_blocks = int(blocks_df["is_multi_department"].sum())
     multi_dept_scheduled = sum(1 for s in scheduled if s.is_multi_department)
-    integration_rate = (multi_dept_scheduled / max(num_scheduled, 1)) * 100
+    integration_rate = (multi_dept_scheduled / max(total_multi_dept_blocks, 1)) * 100
 
     stats = {
         "solver_status": status_name,

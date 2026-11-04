@@ -23,7 +23,7 @@ import LiveDashboard from './components/realtime/LiveDashboard';
 import BetaDashboard from './components/beta/BetaDashboard';
 function cn(...inputs) { return twMerge(clsx(inputs)); }
 
-const API = import.meta.env.VITE_API_URL || (import.meta.env.MODE === 'development' ? 'http://127.0.0.1:8000/api' : '/api');
+const API = import.meta.env.VITE_API_URL || '/api';
 
 /* ────────────────────── Navigation Structure ────────────────────── */
 const NAV_SECTIONS = [
@@ -92,8 +92,10 @@ export default function App() {
         schedule: sched.data.schedule || [],
         tasks: tasks.data.tasks || [],
       });
+      return true;
     } catch (err) {
       if (err.response?.status !== 404) console.error(err);
+      return false;
     } finally {
       setLoading(false);
     }
@@ -112,7 +114,19 @@ export default function App() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    let active = true;
+    let retries = 0;
+    const fetchWithRetry = async () => {
+      const ok = await fetchData();
+      if (!ok && active && retries < 5) {
+        retries++;
+        setTimeout(fetchWithRetry, 2500);
+      }
+    };
+    fetchWithRetry();
+    return () => { active = false; };
+  }, []);
 
   /* ── WebSocket with Auto-Reconnect ── */
   useEffect(() => {
@@ -189,7 +203,7 @@ export default function App() {
 
   /* ── Panel renderer (shared by single-view and cockpit panes) ── */
   const renderPanel = (tabId) => {
-    if (!data || tabId === 'home') {
+    if (tabId === 'home') {
       return (
         <div className="flex flex-col items-center justify-center min-h-[500px] animate-fade-in-up py-10 px-4">
           <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
@@ -230,21 +244,19 @@ export default function App() {
                 <>Start Optimizing <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" /></>
               )}
             </button>
-            {data && (
-              <button
-                onClick={() => {
-                  setActiveTab('map');
-                  if (cockpitMode) setCockpitMode(false);
-                }}
-                className="flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold text-white bg-[#111111] hover:bg-[#1a1a1a] border border-[#222] hover:border-[#333] transition-all w-full sm:w-auto text-[15px]"
-              >
-                View Map
-              </button>
-            )}
+            <button
+              onClick={() => {
+                setActiveTab('map');
+                if (cockpitMode) setCockpitMode(false);
+              }}
+              className="flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold text-white bg-[#111111] hover:bg-[#1a1a1a] border border-[#222] hover:border-[#333] transition-all w-full sm:w-auto text-[15px]"
+            >
+              View Map
+            </button>
           </div>
 
           {/* ── KPI Cards Section ── */}
-          {data && s && (
+          {s && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-5 mt-16 sm:mt-24 w-full max-w-5xl">
               <KpiBox icon={<Activity />}    value={`${s.asset_availability_pct.toFixed(1)}%`}    label="Asset Availability"  color="text-purple-400"  animation="animate-pulse" />
               <KpiBox icon={<BarChart3 />}   value={`${s.block_utilization_pct.toFixed(1)}%`}     label="Block Utilization"   color="text-emerald-400" animation="animate-float" />
@@ -257,15 +269,15 @@ export default function App() {
     }
     switch (tabId) {
       case 'livedash':  return <LiveDashboard />;
-      case 'gantt':     return <RailwayGantt schedule={data.schedule} tasks={data.tasks} />;
+      case 'gantt':     return <RailwayGantt schedule={data?.schedule || []} tasks={data?.tasks || []} />;
       case 'map':       return <RailwayMap />;
       case 'incidents': return <IncidentSimulator onIncidentInjected={fetchData} />;
       case 'fleet':     return <FleetManager />;
-      case 'charts':    return <AnalyticsCharts schedule={data.schedule} tasks={data.tasks} />;
+      case 'charts':    return <AnalyticsCharts schedule={data?.schedule || []} tasks={data?.tasks || []} />;
       case 'blocks':    return (
         <div className="space-y-4">
-          <ReportExporter schedule={data.schedule} stats={data.stats} />
-          <DataTable data={data.schedule} onSelect={setModalBlock} />
+          <ReportExporter schedule={data?.schedule || []} stats={data?.stats} />
+          <DataTable data={data?.schedule || []} onSelect={setModalBlock} />
         </div>
       );
       case 'beta':      return <BetaDashboard />;

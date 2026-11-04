@@ -60,7 +60,7 @@ class IntegratedBlock:
 
 def cluster_tasks(
     tasks_df: pd.DataFrame,
-    eps_km: float = 2.0,
+    eps_km: float = 3.0,
     min_samples: int = 1,
 ) -> tuple:
     """
@@ -154,6 +154,8 @@ def cluster_tasks(
             # but tasks within the same department are sequential
             dept_hours = cluster_data.groupby("department")["estimated_duration"].sum()
             block_hours = float(dept_hours.max())
+            # Cap block duration so integrated blocks fit in typical corridor windows
+            block_hours = min(block_hours, 4.0)
 
             block = IntegratedBlock(
                 block_id=f"BLK-{global_block_id:04d}",

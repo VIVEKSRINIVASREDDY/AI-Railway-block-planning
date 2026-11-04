@@ -32,6 +32,8 @@ export default function RailwayMap() {
 
     // Dynamically import Leaflet (avoids SSR issues)
     import('leaflet').then(L => {
+      if (!mapRef.current || mapRef.current._leaflet_id || leafletMap.current) return;
+
       // Fix default icon path issue in bundlers
       delete L.Icon.Default.prototype._getIconUrl;
       L.Icon.Default.mergeOptions({

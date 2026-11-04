@@ -2,6 +2,7 @@
 Shared State and WebSocket Connection Manager for the AI Block Planning System.
 """
 
+import json
 from typing import Dict, Any, List
 from fastapi import WebSocket
 import pandas as pd
@@ -27,6 +28,10 @@ class ConnectionManager:
                 await connection.send_text(message)
             except Exception:
                 self.disconnect(connection)
+
+    async def broadcast_json(self, data: dict):
+        """Convenience method: serialize dict to JSON and broadcast."""
+        await self.broadcast(json.dumps(data, default=str))
 
 
 manager = ConnectionManager()

@@ -15,6 +15,8 @@ export default function LiveRadarMap() {
     if (leafletMap.current) return;
 
     import('leaflet').then(L => {
+      if (!mapRef.current || mapRef.current._leaflet_id || leafletMap.current) return;
+
       // Fix default icons
       delete L.Icon.Default.prototype._getIconUrl;
       L.Icon.Default.mergeOptions({
