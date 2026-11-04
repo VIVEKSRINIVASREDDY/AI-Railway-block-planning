@@ -59,13 +59,30 @@ const SEVERITIES = [
   { id: 'high',   label: 'Critical', activeClass: 'border-rose-500 text-rose-300 bg-rose-950/50 shadow-md shadow-rose-500/30 ring-1 ring-rose-500/60 animate-pulse', dot: 'bg-rose-400' },
 ];
 
+const PRESETS = [
+  { id: 'monsoon', label: 'Monsoon Flash Flood (Kalyan)', type: 'Track Flooding', km: 54, sev: 'high', line: 'DN SLOW' },
+  { id: 'buckling', label: 'Heat Buckling Risk (Thal Ghat)', type: 'Broken Rail', km: 125, sev: 'high', line: 'UP FAST' },
+  { id: 'fracture', label: 'Peak Hour Rail Fracture (Thane)', type: 'Broken Rail', km: 34, sev: 'high', line: 'UP FAST' },
+];
+
 export default function IncidentSimulator({ onIncidentInjected }) {
   const [selectedType, setSelectedType] = useState('Broken Rail');
   const [severity, setSeverity] = useState('medium');
   const [kmMarker, setKmMarker] = useState(120);
+  const [lineTrack, setLineTrack] = useState('UP FAST');
   const [status, setStatus] = useState('idle');
   const [result, setResult] = useState(null);
   const [log, setLog] = useState([]);
+  const [isSandboxMode, setIsSandboxMode] = useState(true);
+  const [showApplyConfirm, setShowApplyConfirm] = useState(false);
+
+  const applyPreset = (p) => {
+    setSelectedType(p.type);
+    setKmMarker(p.km);
+    setSeverity(p.sev);
+    setLineTrack(p.line);
+    addLog(`Applied Preset: ${p.label}`, 'info');
+  };
 
   const addLog = (msg, type = 'info') => {
     setLog(prev => [{
@@ -120,13 +137,36 @@ export default function IncidentSimulator({ onIncidentInjected }) {
                 AI Auto-Replanning Active
               </span>
             </h3>
-            <p className="text-slate-400 text-xs mt-0.5">Inject an unexpected line disruption to trigger real-time OR-Tools constraint re-optimization and save updated schedules.</p>
+            <p className="text-slate-400 text-xs mt-0.5">Inject an unexpected line disruption into a sandbox simulation or live plan.</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-red-950/40 border border-red-500/40 rounded-full shadow-inner">
-          <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"/>
-          <span className="text-xs text-red-300 font-bold tracking-wider uppercase">Live Ops Mode</span>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsSandboxMode(!isSandboxMode)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-bold transition-all ${
+              isSandboxMode
+                ? 'bg-indigo-950/60 border-indigo-500/50 text-indigo-300'
+                : 'bg-red-950/60 border-red-500/50 text-red-300'
+            }`}
+          >
+            <span className={`w-2 h-2 rounded-full ${isSandboxMode ? 'bg-indigo-400' : 'bg-red-500 animate-ping'}`}/>
+            <span>{isSandboxMode ? 'SANDBOX MODE' : 'LIVE OPS MODE'}</span>
+          </button>
         </div>
+      </div>
+
+      {/* Scenario Presets Strip */}
+      <div className="p-3 bg-[#11131c] border border-white/10 rounded-xl flex items-center gap-3 overflow-x-auto">
+        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0">Scenario Presets:</span>
+        {PRESETS.map(p => (
+          <button
+            key={p.id}
+            onClick={() => applyPreset(p)}
+            className="px-3 py-1.5 rounded-lg bg-[#181a26] hover:bg-[#202434] border border-[#2a2e44] text-xs font-semibold text-slate-200 shrink-0 transition-colors"
+          >
+            {p.label}
+          </button>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -206,6 +246,28 @@ export default function IncidentSimulator({ onIncidentInjected }) {
               </div>
             </div>
 
+            {/* Line Selection */}
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2.5">
+                Corridor Line / Track
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {['UP FAST', 'DN FAST', 'UP SLOW', 'DN SLOW'].map(line => (
+                  <button
+                    key={line}
+                    onClick={() => setLineTrack(line)}
+                    className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all ${
+                      lineTrack === line
+                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
+                        : 'bg-[#161824] border-[#262a3d] text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {line}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Km Marker */}
             <div>
               <div className="flex justify-between items-center mb-2">
@@ -241,9 +303,11 @@ export default function IncidentSimulator({ onIncidentInjected }) {
               </div>
               {[
                 { k: 'Disruption Type', v: selectedType },
+                { k: 'Track / Line', v: lineTrack },
                 { k: 'Corridor Marker', v: `Km ${kmMarker} (Central Railway)` },
                 { k: 'Department Assigned', v: incType?.dept },
                 { k: 'Safety Severity', v: sevInfo?.label },
+                { k: 'Simulation Target', v: isSandboxMode ? 'Isolated Sandbox Copy' : 'Active Operational Plan' },
               ].map(row => (
                 <div key={row.k} className="flex justify-between items-center text-xs py-0.5 border-b border-white/5 last:border-0">
                   <span className="text-slate-400 font-medium">{row.k}</span>

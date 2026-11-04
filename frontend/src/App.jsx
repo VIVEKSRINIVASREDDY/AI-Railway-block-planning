@@ -56,9 +56,9 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    category: 'BETA PREVIEW',
+    category: 'Corridor Radar',
     items: [
-      { id: 'beta',  label: 'Professional Upgrades', icon: Zap, badge: 'new' },
+      { id: 'beta',  label: 'Live Train Radar', icon: Zap, badge: 'live' },
     ],
   },
 ];
@@ -258,10 +258,42 @@ export default function App() {
           {/* ── KPI Cards Section ── */}
           {s && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-5 mt-16 sm:mt-24 w-full max-w-5xl">
-              <KpiBox icon={<Activity />}    value={`${s.asset_availability_pct.toFixed(1)}%`}    label="Asset Availability"  color="text-purple-400"  animation="animate-pulse" />
-              <KpiBox icon={<BarChart3 />}   value={`${s.block_utilization_pct.toFixed(1)}%`}     label="Block Utilization"   color="text-emerald-400" animation="animate-float" />
-              <KpiBox icon={<CheckCircle />} value={`${s.schedule_rate_pct.toFixed(0)}%`}         label="Schedule Rate"       color="text-sky-400"     animation="animate-pulse" />
-              <KpiBox icon={<Layers />}      value={`${s.integration_rate_pct.toFixed(1)}%`}      label="Integration Rate"    color="text-pink-400"    animation="animate-float-delayed" />
+              <KpiBox
+                icon={<Activity />}
+                value={`${s.asset_availability_pct.toFixed(1)}%`}
+                label="Asset Availability"
+                color="text-purple-400"
+                animation="animate-pulse"
+                tooltip={s.formulas?.asset_availability || "1 - (Unresolved Defect Hours / Horizon Track Hours)"}
+                runId={s.run_id}
+              />
+              <KpiBox
+                icon={<BarChart3 />}
+                value={`${s.block_utilization_pct.toFixed(1)}%`}
+                label="Block Utilization"
+                color="text-emerald-400"
+                animation="animate-float"
+                tooltip={s.formulas?.block_utilization || "Productive Block Hours / Available Window Hours"}
+                runId={s.run_id}
+              />
+              <KpiBox
+                icon={<CheckCircle />}
+                value={`${s.schedule_rate_pct.toFixed(0)}%`}
+                label="Schedule Rate"
+                color="text-sky-400"
+                animation="animate-pulse"
+                tooltip={s.formulas?.schedule_rate || "Blocks Scheduled / Candidate Blocks"}
+                runId={s.run_id}
+              />
+              <KpiBox
+                icon={<Layers />}
+                value={`${(s.joint_block_rate_pct ?? s.integration_rate_pct).toFixed(1)}%`}
+                label="Joint Block Rate"
+                color="text-pink-400"
+                animation="animate-float-delayed"
+                tooltip={s.formulas?.joint_block_rate || "Multi-Dept Blocks / Scheduled Blocks"}
+                runId={s.run_id}
+              />
             </div>
           )}
         </div>
@@ -449,10 +481,34 @@ export default function App() {
           {/* KPI chips — center */}
           {data && s && (
             <div className="hidden lg:flex items-center gap-2 flex-1 justify-center min-w-0">
-              <KpiChip label="Avail" value={`${s.asset_availability_pct.toFixed(1)}%`} color="text-purple-400" />
-              <KpiChip label="Util"  value={`${s.block_utilization_pct.toFixed(1)}%`}  color="text-emerald-400" />
-              <KpiChip label="Sched" value={`${s.schedule_rate_pct.toFixed(0)}%`}       color="text-sky-400" />
-              <KpiChip label="Integ" value={`${s.integration_rate_pct.toFixed(1)}%`}    color="text-pink-400" />
+              <KpiChip
+                label="Avail"
+                value={`${s.asset_availability_pct.toFixed(1)}%`}
+                color="text-purple-400"
+                tooltip={s.formulas?.asset_availability || "1 - (Unresolved Defect Hours / Horizon Track Hours)"}
+                runId={s.run_id}
+              />
+              <KpiChip
+                label="Util"
+                value={`${s.block_utilization_pct.toFixed(1)}%`}
+                color="text-emerald-400"
+                tooltip={s.formulas?.block_utilization || "Productive Block Hours / Available Window Hours"}
+                runId={s.run_id}
+              />
+              <KpiChip
+                label="Sched"
+                value={`${s.schedule_rate_pct.toFixed(0)}%`}
+                color="text-sky-400"
+                tooltip={s.formulas?.schedule_rate || "Blocks Scheduled / Candidate Blocks"}
+                runId={s.run_id}
+              />
+              <KpiChip
+                label="Joint"
+                value={`${(s.joint_block_rate_pct ?? s.integration_rate_pct).toFixed(1)}%`}
+                color="text-pink-400"
+                tooltip={s.formulas?.joint_block_rate || "Multi-Dept Blocks / Scheduled Blocks"}
+                runId={s.run_id}
+              />
             </div>
           )}
 
@@ -478,6 +534,20 @@ export default function App() {
             </button>
           </div>
         </header>
+
+        {/* ── Offline System Banner ── */}
+        {!wsConnected && (
+          <div className="bg-rose-950/80 border-b border-rose-800/60 px-4 py-2 flex items-center justify-between text-xs text-rose-300 shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+              <span className="font-bold tracking-wide">SYSTEM OFFLINE:</span>
+              <span>Backend or WebSocket stream is disconnected. Real-time telemetry is paused. Showing cached state.</span>
+            </div>
+            <span className="px-2 py-0.5 rounded bg-rose-900/60 border border-rose-700/50 text-[10px] uppercase tracking-wider font-semibold">
+              CACHED
+            </span>
+          </div>
+        )}
 
         {/* ── Real-Time Event Ticker ── */}
         <EventTicker />

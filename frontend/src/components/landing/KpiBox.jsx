@@ -4,9 +4,13 @@ import { twMerge } from 'tailwind-merge';
 function cn(...inputs) { return twMerge(clsx(inputs)); }
 
 /* ════════════════════════ KPI Box ════════════════════════ */
-export default function KpiBox({ icon, value, label, color, animation }) {
+export default function KpiBox({ icon, value, label, color, animation, tooltip, runId }) {
+  const titleText = tooltip ? `${label}: ${tooltip}${runId ? ` [Run: ${runId}]` : ''}` : undefined;
   return (
-    <div className="flex flex-col items-center justify-center p-6 sm:p-8 rounded-2xl bg-[#0a0a0a] border border-[#1a1a1a] hover:border-[#333] transition-colors group">
+    <div
+      title={titleText}
+      className="flex flex-col items-center justify-center p-6 sm:p-8 rounded-2xl bg-[#0a0a0a] border border-[#1a1a1a] hover:border-[#333] transition-colors group cursor-help"
+    >
       <div className={cn("mb-3 opacity-90 transition-transform group-hover:scale-110", color, animation)}>
         {icon}
       </div>

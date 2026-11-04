@@ -96,3 +96,4 @@ def test_validator_passes_on_real_optimizer_output():
 
     assert report.is_valid, f"Validation failed with {len(report.violations)} violations: {report.violations}"
     assert len(report.violations) == 0
+

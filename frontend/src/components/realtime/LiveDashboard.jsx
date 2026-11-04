@@ -92,8 +92,11 @@ export default function LiveDashboard() {
               <h2 className="text-white font-bold text-base tracking-wide">
                 Live Operations & Block Execution Dashboard
               </h2>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 uppercase tracking-wider">
-                Live Telemetry Active
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${telemetry.length > 0 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-slate-500/15 text-slate-400 border border-slate-500/30'}`}>
+                {telemetry.length > 0 ? 'Live Telemetry Active' : 'Offline / Awaiting Telemetry'}
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 uppercase tracking-wider">
+                Provenance: {kpis?.provenance || 'SYNTHETIC'}
               </span>
             </div>
             <p className="text-slate-400 text-xs mt-0.5">
@@ -104,74 +107,95 @@ export default function LiveDashboard() {
 
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1.5 bg-[#161824] border border-white/10 rounded-xl text-xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-slate-300 font-semibold">OR-Tools Solver: OPTIMAL</span>
+            <span className={`w-2 h-2 rounded-full ${kpis?.solver_status === 'OPTIMAL' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+            <span className="text-slate-300 font-semibold">
+              OR-Tools: {kpis?.solver_status || 'NOT RUN'}
+            </span>
           </div>
           <div className="flex items-center gap-2 px-3 py-1.5 bg-[#161824] border border-white/10 rounded-xl text-xs">
-            <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-            <span className="text-slate-300 font-semibold">{telemetry.length} IoT Sensors Online</span>
+            <Radio className={`w-3.5 h-3.5 ${telemetry.length > 0 ? 'text-cyan-400 animate-pulse' : 'text-slate-500'}`} />
+            <span className="text-slate-300 font-semibold">{telemetry.length} IoT Sensors {telemetry.length > 0 ? 'Online' : 'Offline'}</span>
           </div>
         </div>
       </div>
 
       {/* ── Executive Metric KPI Strip ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3.5 shrink-0">
-        <div className="bg-[#11131c] border border-white/10 rounded-xl p-3.5 shadow-lg flex flex-col justify-between">
+        <div
+          title={`Formula: ${kpis?.formulas?.schedule_rate || 'Blocks Scheduled / Total Candidate Blocks'} [Run: ${kpis?.run_id || 'N/A'}]`}
+          className="bg-[#11131c] border border-white/10 rounded-xl p-3.5 shadow-lg flex flex-col justify-between cursor-help"
+        >
           <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
             <span>Blocks Scheduled</span>
             <Layers className="w-4 h-4 text-purple-400" />
           </div>
           <div className="text-2xl font-black text-white mt-1.5 font-outfit">
-            {kpis?.blocks_scheduled || schedule.length || 0}
-            <span className="text-xs font-normal text-slate-400 ml-1">/ {kpis?.total_blocks || 165}</span>
+            {kpis?.blocks_scheduled ?? (schedule.length || 0)}
+            <span className="text-xs font-normal text-slate-400 ml-1">/ {kpis?.total_blocks ?? schedule.length}</span>
           </div>
           <div className="text-[11px] text-purple-400 font-semibold mt-1 flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" /> {kpis?.schedule_rate_pct?.toFixed(0) || 63}% Rate
+            <TrendingUp className="w-3 h-3" /> {kpis?.schedule_rate_pct != null ? `${kpis.schedule_rate_pct.toFixed(0)}% Rate` : 'N/A'}
           </div>
         </div>
 
-        <div className="bg-[#11131c] border border-white/10 rounded-xl p-3.5 shadow-lg flex flex-col justify-between">
+        <div
+          title={`Formula: ${kpis?.formulas?.asset_availability || '1 - (Unresolved Defect Hours / Horizon Track Hours)'} [Run: ${kpis?.run_id || 'N/A'}]`}
+          className="bg-[#11131c] border border-white/10 rounded-xl p-3.5 shadow-lg flex flex-col justify-between cursor-help"
+        >
           <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
             <span>Asset Availability</span>
             <CheckCircle className="w-4 h-4 text-emerald-400" />
           </div>
           <div className="text-2xl font-black text-emerald-400 mt-1.5 font-outfit">
-            {kpis?.asset_availability_pct?.toFixed(1) || '84.1'}%
+            {kpis?.asset_availability_pct != null ? `${kpis.asset_availability_pct.toFixed(1)}%` : 'N/A'}
           </div>
-          <div className="text-[11px] text-slate-400 mt-1">Target &gt; 80% (Pass)</div>
+          <div className="text-[11px] text-slate-400 mt-1">
+            Target &gt; {kpis?.target_asset_availability_pct || 88}% {kpis?.asset_availability_pct >= (kpis?.target_asset_availability_pct || 88) ? '(Pass)' : '(Warn)'}
+          </div>
         </div>
 
-        <div className="bg-[#11131c] border border-white/10 rounded-xl p-3.5 shadow-lg flex flex-col justify-between">
+        <div
+          title={`Formula: ${kpis?.formulas?.block_utilization || 'Productive Block Hours / Available Window Hours'} [Run: ${kpis?.run_id || 'N/A'}]`}
+          className="bg-[#11131c] border border-white/10 rounded-xl p-3.5 shadow-lg flex flex-col justify-between cursor-help"
+        >
           <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
             <span>Block Utilization</span>
             <Clock className="w-4 h-4 text-cyan-400" />
           </div>
           <div className="text-2xl font-black text-cyan-400 mt-1.5 font-outfit">
-            {kpis?.block_utilization_pct?.toFixed(1) || '35.3'}%
+            {kpis?.block_utilization_pct != null ? `${kpis.block_utilization_pct.toFixed(1)}%` : 'N/A'}
           </div>
           <div className="text-[11px] text-slate-400 mt-1">Peak-Traffic Free</div>
         </div>
 
-        <div className="bg-[#11131c] border border-white/10 rounded-xl p-3.5 shadow-lg flex flex-col justify-between">
+        <div
+          title={`Formula: ${kpis?.formulas?.joint_block_rate || 'Multi-Dept Blocks / Scheduled Blocks'} [Run: ${kpis?.run_id || 'N/A'}]`}
+          className="bg-[#11131c] border border-white/10 rounded-xl p-3.5 shadow-lg flex flex-col justify-between cursor-help"
+        >
           <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-            <span>Integration Rate</span>
+            <span>Joint Block Rate</span>
             <Zap className="w-4 h-4 text-amber-400" />
           </div>
           <div className="text-2xl font-black text-amber-400 mt-1.5 font-outfit">
-            {kpis?.integration_rate_pct?.toFixed(1) || '25.0'}%
+            {kpis?.joint_block_rate_pct != null ? `${kpis.joint_block_rate_pct.toFixed(1)}%` : 'N/A'}
           </div>
           <div className="text-[11px] text-amber-400/90 font-medium mt-1">Multi-Dept Shadow Blocks</div>
         </div>
 
-        <div className="bg-[#11131c] border border-white/10 rounded-xl p-3.5 shadow-lg flex flex-col justify-between col-span-2 md:col-span-4 lg:col-span-1">
+        <div
+          title="Resilience score evaluated after emergency disruptions. Baseline is N/A until an incident occurs."
+          className="bg-[#11131c] border border-white/10 rounded-xl p-3.5 shadow-lg flex flex-col justify-between col-span-2 md:col-span-4 lg:col-span-1 cursor-help"
+        >
           <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
             <span>Resilience Score</span>
             <ShieldCheck className="w-4 h-4 text-indigo-400" />
           </div>
           <div className="text-2xl font-black text-indigo-400 mt-1.5 font-outfit">
-            {resilience ? Math.round(resilience.overall_score) : 100}
+            {resilience?.overall_score != null ? Math.round(resilience.overall_score) : 'N/A'}
           </div>
-          <div className="text-[11px] text-emerald-400 font-medium mt-1">100% Stability</div>
+          <div className="text-[11px] text-slate-400 font-medium mt-1">
+            {resilience?.stability != null ? `${resilience.stability}% Stability` : 'Awaiting Incident'}
+          </div>
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import { Download, FileText, Table, CheckCircle, Loader2, QrCode } from 'lucide-
 export default function ReportExporter({ schedule = [], stats = null }) {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfDone, setPdfDone] = useState(false);
+  const isApproved = stats?.solver_status === 'OPTIMAL' && stats?.plan_approved === true;
 
   const fmtH = h => {
     const hh = Math.floor(h), mm = Math.round((h - hh) * 60);
@@ -58,6 +59,14 @@ export default function ReportExporter({ schedule = [], stats = null }) {
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(26);
       doc.setFont('helvetica', 'bold');
+      doc.text(isApproved ? 'SANCTIONED BLOCK CLEARANCE ORDER' : 'DRAFT BLOCK CLEARANCE ORDER', 10, 36);
+
+      // Draft watermark across page 1 if not approved
+      if (!isApproved) {
+        doc.setFontSize(54);
+        doc.setTextColor(239, 68, 68);
+        doc.text('DRAFT — NOT SANCTIONED', W / 2, H / 2, { align: 'center', angle: 30 });
+      }
       doc.text('DAILY BLOCK CLEARANCE ORDER', W / 2, 55, { align: 'center' });
 
       doc.setFontSize(12);
@@ -206,18 +215,23 @@ export default function ReportExporter({ schedule = [], stats = null }) {
       <button
         onClick={downloadPDF}
         disabled={!schedule.length || pdfLoading}
+        title={!isApproved ? "Document will be stamped DRAFT until formally approved by Divisional Officer." : undefined}
         className={`flex items-center gap-2 px-5 py-2 rounded-xl font-semibold text-xs transition-all ${
           pdfDone
             ? 'bg-emerald-600 text-white border border-emerald-500'
-            : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.3)]'
+            : isApproved
+            ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)]'
+            : 'bg-[#1e1e24] border border-[#333] text-amber-300 hover:border-amber-500/50'
         } disabled:opacity-50 disabled:cursor-not-allowed`}
       >
         {pdfLoading ? (
           <><Loader2 className="w-3.5 h-3.5 animate-spin"/>Generating PDF...</>
         ) : pdfDone ? (
           <><CheckCircle className="w-3.5 h-3.5"/>Downloaded!</>
+        ) : isApproved ? (
+          <><Download className="w-3.5 h-3.5"/><QrCode className="w-3.5 h-3.5"/>Download Sanctioned Permit (PDF)</>
         ) : (
-          <><Download className="w-3.5 h-3.5"/><QrCode className="w-3.5 h-3.5"/>Download Work Permit (PDF)</>
+          <><FileText className="w-3.5 h-3.5"/>Export Draft Order (PDF)</>
         )}
       </button>
     </div>

@@ -17,10 +17,11 @@ def compute_resilience_score() -> Dict[str, float]:
     """
     if len(digital_twin_state.plan_history) < 2:
         return {
-            "overall_score": 100.0,
-            "stability": 100.0,
-            "recovery_efficiency": 100.0,
-            "message": "Baseline plan active. Insufficient disruptions for resilience scoring."
+            "overall_score": None,
+            "stability": None,
+            "recovery_efficiency": None,
+            "has_incident": False,
+            "message": "N/A — Baseline schedule active. Awaiting disruption injection."
         }
         
     latest_plan = digital_twin_state.plan_history[-1]

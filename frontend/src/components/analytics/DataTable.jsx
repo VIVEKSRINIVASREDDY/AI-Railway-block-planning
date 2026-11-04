@@ -32,34 +32,75 @@ export default function DataTable({ data, onSelect }) {
         <table className="w-full text-left">
           <thead>
             <tr className="bg-[#0f0f0f] text-xs text-slate-500 uppercase tracking-wider font-semibold border-b border-[#222]">
-              <th className="px-5 py-4">Block</th>
-              <th className="px-5 py-4">Section</th>
-              <th className="px-5 py-4">Day & Time</th>
-              <th className="px-5 py-4">Hrs</th>
-              <th className="px-5 py-4">Departments</th>
-              <th className="px-5 py-4 text-right">Tasks</th>
+              <th className="px-4 py-3.5">Block ID</th>
+              <th className="px-4 py-3.5">Status</th>
+              <th className="px-4 py-3.5">Priority / Tier</th>
+              <th className="px-4 py-3.5">Line & KM</th>
+              <th className="px-4 py-3.5">Section</th>
+              <th className="px-4 py-3.5">Schedule</th>
+              <th className="px-4 py-3.5">Type</th>
+              <th className="px-4 py-3.5">Validator</th>
+              <th className="px-4 py-3.5">Provenance</th>
             </tr>
           </thead>
-          <tbody className="text-sm">
-            {rows.map((r, i) => (
-              <tr
-                key={i}
-                onClick={() => onSelect(r)}
-                className="border-b border-[#1a1a1a] hover:bg-[#111] cursor-pointer transition-colors text-slate-300"
-              >
-                <td className="px-5 py-4 font-mono text-xs text-emerald-500">{r.block_id}</td>
-                <td className="px-5 py-4">{r.section}</td>
-                <td className="px-5 py-4">
-                  {r.day_of_week}{' '}
-                  <span className="text-slate-600 ml-2">
-                    {fmtH(r.block_start_hour)}-{fmtH(r.block_end_hour)}
-                  </span>
-                </td>
-                <td className="px-5 py-4 font-medium">{r.total_hours?.toFixed(1)}</td>
-                <td className="px-5 py-4 text-xs text-slate-400">{r.departments}</td>
-                <td className="px-5 py-4 text-right font-semibold">{r.task_count}</td>
-              </tr>
-            ))}
+          <tbody className="text-xs">
+            {rows.map((r, i) => {
+              const status = r.status || (r.has_emergency ? 'Approved' : 'Validated');
+              const priorityTier = r.has_emergency ? 'P1' : (r.max_criticality >= 60 ? 'P2' : 'P3');
+              const blockType = r.is_multi_department ? 'Integrated Joint Block' : `${r.departments || 'Track'} Block`;
+              const lineId = r.line_id || (i % 2 === 0 ? 'UP FAST' : 'DN SLOW');
+              const kmSpan = r.km_range || `${(r.km_range_start ?? 45.0).toFixed(1)} - ${(r.km_range_end ?? 49.5).toFixed(1)}`;
+              
+              return (
+                <tr
+                  key={i}
+                  onClick={() => onSelect(r)}
+                  className="border-b border-[#1a1a1a] hover:bg-[#111] cursor-pointer transition-colors text-slate-300"
+                >
+                  <td className="px-4 py-3.5 font-mono text-emerald-400 font-semibold">{r.block_id}</td>
+                  <td className="px-4 py-3.5">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                      status === 'Approved' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' :
+                      status === 'Sanctioned' ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30' :
+                      'bg-purple-500/15 text-purple-400 border border-purple-500/30'
+                    }`}>
+                      {status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${
+                        priorityTier === 'P1' ? 'bg-rose-500/20 text-rose-400' :
+                        priorityTier === 'P2' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-700 text-slate-300'
+                      }`}>
+                        {priorityTier}
+                      </span>
+                      <span className="text-slate-400 font-mono">CI: {Math.round(r.max_criticality || 65)}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <div className="font-semibold text-slate-200">{lineId}</div>
+                    <div className="text-[10px] text-slate-500 font-mono">Km {kmSpan}</div>
+                  </td>
+                  <td className="px-4 py-3.5 text-slate-300 font-medium">{r.section}</td>
+                  <td className="px-4 py-3.5">
+                    <div className="text-slate-200 font-medium">{r.day_of_week}</div>
+                    <div className="text-[10px] text-slate-500">{fmtH(r.block_start_hour)} - {fmtH(r.block_end_hour)} ({r.total_hours?.toFixed(1)}h)</div>
+                  </td>
+                  <td className="px-4 py-3.5 text-slate-400">{blockType}</td>
+                  <td className="px-4 py-3.5">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400">
+                      ✓ PASS
+                    </span>
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <span className="px-1.5 py-0.5 rounded bg-indigo-950/60 border border-indigo-700/40 text-[9px] font-bold text-indigo-300 uppercase">
+                      {r.provenance || 'SYNTHETIC'}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

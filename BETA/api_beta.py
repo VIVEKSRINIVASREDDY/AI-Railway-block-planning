@@ -130,16 +130,16 @@ WEATHER_CACHE = {
     "last_fetched": 0
 }
 
-async def fetch_corridor_weather():
-    """Fetch live temperature & rainfall from Open-Meteo API for Kalyan Junction."""
+def fetch_corridor_weather_sync():
+    """Fetch live temperature & rainfall synchronously or use fallback cache."""
     now = time.time()
     if now - WEATHER_CACHE["last_fetched"] < 300: # 5 min cache
         return WEATHER_CACHE
         
     try:
         url = "https://api.open-meteo.com/v1/forecast?latitude=19.2389&longitude=73.1293&current_weather=true"
-        async with httpx.AsyncClient(timeout=4.0) as client:
-            resp = await client.get(url)
+        with httpx.Client(timeout=1.0) as client:
+            resp = client.get(url)
             if resp.status_code == 200:
                 data = resp.json().get("current_weather", {})
                 WEATHER_CACHE["temperature"] = data.get("temperature", 30.0)
@@ -147,9 +147,14 @@ async def fetch_corridor_weather():
                 WEATHER_CACHE["is_raining"] = code in [51, 53, 55, 61, 63, 65, 80, 81, 82, 95]
                 WEATHER_CACHE["condition"] = "Rain / Wet Rail" if WEATHER_CACHE["is_raining"] else ("High Heat" if WEATHER_CACHE["temperature"] > 38 else "Normal")
                 WEATHER_CACHE["last_fetched"] = now
-    except Exception as e:
-        pass
+    except Exception:
+        WEATHER_CACHE["last_fetched"] = now  # prevent repeated blocking
     return WEATHER_CACHE
+
+async def fetch_corridor_weather():
+    """Run fetch in thread pool or return cache."""
+    import asyncio
+    return await asyncio.to_thread(fetch_corridor_weather_sync)
 
 @beta_router.get("/config")
 async def get_config():

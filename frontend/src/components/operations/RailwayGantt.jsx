@@ -6,8 +6,8 @@ import {
 } from 'lucide-react';
 import BlockModal from './BlockModal';
 
-const CORRIDORS = ['All Corridors','Delhi-Kanpur','Mumbai-Pune','Chennai-Vijayawada','Howrah-Dhanbad'];
-const DAYS = ['All','Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const CORRIDORS = ['Central Railway (CSMT-Kalyan-Igatpuri) [FLAGSHIP]', 'All Corridors', 'Delhi-Kanpur (SYNTHETIC)', 'Chennai-Vijayawada (SYNTHETIC)', 'Howrah-Dhanbad (SYNTHETIC)'];
+const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun','All'];
 const DAY_FULL = { All:'All', Mon:'Monday', Tue:'Tuesday', Wed:'Wednesday', Thu:'Thursday', Fri:'Friday', Sat:'Saturday', Sun:'Sunday' };
 
 const DEPT_COLORS = {
@@ -18,8 +18,8 @@ const DEPT_COLORS = {
 };
 
 export default function RailwayGantt({ schedule = [], tasks = [] }) {
-  const [corridor, setCorridor] = useState('All Corridors');
-  const [day, setDay] = useState('All');
+  const [corridor, setCorridor] = useState('Central Railway (CSMT-Kalyan-Igatpuri) [FLAGSHIP]');
+  const [day, setDay] = useState('Mon');
   const [dept, setDept] = useState('all');
   const [search, setSearch] = useState('');
   const [view, setView] = useState('timeline');
@@ -30,7 +30,10 @@ export default function RailwayGantt({ schedule = [], tasks = [] }) {
 
   const filtered = useMemo(() => {
     return schedule.filter(b => {
-      if (corridor !== 'All Corridors' && b.corridor !== corridor) return false;
+      if (corridor.startsWith('Central Railway') && b.corridor !== 'Mumbai-Pune') return false;
+      if (corridor.includes('Delhi-Kanpur') && b.corridor !== 'Delhi-Kanpur') return false;
+      if (corridor.includes('Chennai-Vijayawada') && b.corridor !== 'Chennai-Vijayawada') return false;
+      if (corridor.includes('Howrah-Dhanbad') && b.corridor !== 'Howrah-Dhanbad') return false;
       if (day !== 'All' && b.day_of_week !== dayFull) return false;
       if (dept === 'joint' && !b.is_multi_department) return false;
       if (dept !== 'all' && dept !== 'joint' && !b.departments.includes(dept)) return false;
