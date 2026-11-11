@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: ai-railway-block-planning
+    env: docker
+    dockerfilePath: ./BETA/Dockerfile
+    dockerContext: .
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: ENVIRONMENT
+        value: production
