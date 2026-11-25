@@ -28,37 +28,37 @@ const API = import.meta.env.VITE_API_URL || '/api';
 /* ────────────────────── Navigation Structure ────────────────────── */
 const NAV_SECTIONS = [
   {
-    category: 'Overview',
+    category: 'System Overview',
     items: [
       { id: 'home',      label: 'Home',            icon: Home },
     ],
   },
   {
-    category: 'Operations Desk',
+    category: 'Traffic & Planning Desk',
     items: [
-      { id: 'livedash',  label: 'Live Dashboard',  icon: Activity, badge: 'live' },
-      { id: 'gantt',     label: 'Gantt Dispatch',  icon: Clock },
-      { id: 'map',       label: 'Live Track Map',  icon: Map },
-      { id: 'incidents', label: 'Incident Sim',    icon: Zap,   badge: 'alert' },
+      { id: 'livedash',  label: 'Live Operations',  icon: Activity, badge: 'live' },
+      { id: 'gantt',     label: 'Block Dispatch Gantt',  icon: Clock },
+      { id: 'map',       label: 'Corridor Track Map',  icon: Map },
+      { id: 'incidents', label: 'Disruption & Re-plan', icon: Zap,   badge: 'alert' },
     ],
   },
   {
-    category: 'Data Science',
+    category: 'Performance & Optimization',
     items: [
-      { id: 'charts', label: 'Analytics Hub', icon: BarChart3 },
+      { id: 'charts', label: 'Efficiency & KPIs', icon: BarChart3 },
     ],
   },
   {
-    category: 'Asset Management',
+    category: 'Field & Maintenance Assets',
     items: [
-      { id: 'fleet',  label: 'Fleet Manager',      icon: Truck },
-      { id: 'blocks', label: 'Maint. Blocks',      icon: Layers, badge: 'count' },
+      { id: 'fleet',  label: 'Machinery & Crews',   icon: Truck },
+      { id: 'blocks', label: 'Approved Blocks',      icon: Layers, badge: 'count' },
     ],
   },
   {
-    category: 'Corridor Radar',
+    category: 'Live Train Radar',
     items: [
-      { id: 'beta',  label: 'Live Train Radar', icon: Zap, badge: 'live' },
+      { id: 'beta',  label: 'Real-Time Train Telemetry', icon: Zap, badge: 'live' },
     ],
   },
 ];
