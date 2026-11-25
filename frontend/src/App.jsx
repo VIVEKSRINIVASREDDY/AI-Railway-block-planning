@@ -386,13 +386,13 @@ export default function App() {
                           : "text-[#707080] hover:text-[#c0c0cc] hover:bg-white/[0.03]"
                       )}
                     >
-                      <div className="relative shrink-0">
+                      <div className="relative shrink-0 flex items-center justify-center">
                         <Icon className="w-[18px] h-[18px]" />
                         {item.badge === 'live' && wsConnected && (
-                          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-pulse ring-2 ring-[#070709]" />
+                          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 live-beacon ring-1 ring-[#070709]" />
                         )}
                         {item.badge === 'alert' && incidentAlert && (
-                          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 animate-pulse ring-2 ring-[#070709]" />
+                          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 alert-beacon ring-1 ring-[#070709]" />
                         )}
                       </div>
 

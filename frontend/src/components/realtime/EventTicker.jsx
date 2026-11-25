@@ -30,7 +30,7 @@ export default function EventTicker() {
   return (
     <div className="w-full bg-[#0a0a0f] border-t border-b border-[#222] py-2 px-4 flex items-center overflow-hidden h-12 shrink-0">
       <div className="flex items-center gap-2 pr-4 border-r border-[#333] shrink-0">
-        <Zap className="w-4 h-4 text-emerald-400 animate-pulse" />
+        <Zap className="w-4 h-4 text-emerald-400 live-beacon" />
         <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Live Feed</span>
       </div>
       

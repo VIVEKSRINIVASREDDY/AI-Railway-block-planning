@@ -234,6 +234,53 @@ input[type="range"]::-webkit-slider-thumb {
   color: #e2e8f0;
 }
 
+/* ── Smooth Pulse & Radar Animations ── */
+@keyframes smoothGlowPulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+    box-shadow: 0 0 12px 3px rgba(16, 185, 129, 0.45);
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+@keyframes smoothAlertPulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+    box-shadow: 0 0 12px 3px rgba(245, 158, 11, 0.45);
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}
+
+.live-beacon {
+  display: inline-block;
+  animation: smoothGlowPulse 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.alert-beacon {
+  display: inline-block;
+  animation: smoothAlertPulse 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
 /* ── Generic fade-in ── */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateX(-4px); }
